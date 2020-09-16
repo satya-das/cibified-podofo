@@ -16,6 +16,17 @@ SET(PODOFO_VERSION_PATCH "6" CACHE STRING "Patchlevel part of PoDoFo version num
 SET(PODOFO_SOVERSION "${PODOFO_VERSION_MAJOR}.${PODOFO_VERSION_MINOR}.${PODOFO_VERSION_PATCH}")
 SET(PODOFO_LIBVERSION "${PODOFO_SOVERSION}")
 
+SET(PODOFO_BUILD_SHARED TRUE)
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -std=c++1z -fvisibility=hidden -fvisibility-inlines-hidden")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fvisibility=hidden")
+else()
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -std=c++1z -fvisibility=hidden -fvisibility-inlines-hidden -fprofile-arcs -ftest-coverage --coverage")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -fvisibility=hidden")
+endif()
 
 #
 # Main includes
@@ -480,17 +491,17 @@ IF(WANT_BOOST)
     ENDIF(BOOST_FOUND)
 ENDIF(WANT_BOOST)
 
-INCLUDE_DIRECTORIES(BEFORE # before toolchain include dir (to ignore installed)
-    ${PoDoFo_SOURCE_DIR}/src   # order will be reversed, so this is the second dir
-    ${PoDoFo_BINARY_DIR}   # because of BEFORE, this is the first include dir
-    )
+# INCLUDE_DIRECTORIES(BEFORE # before toolchain include dir (to ignore installed)
+#     ${PoDoFo_SOURCE_DIR}/src   # order will be reversed, so this is the second dir
+#     ${PoDoFo_BINARY_DIR}   # because of BEFORE, this is the first include dir
+#     )
 
-INCLUDE_DIRECTORIES(
-    ${PoDoFo_SOURCE_DIR}/src/podofo
-    ${FREETYPE_INCLUDE_DIR}
-    ${ZLIB_INCLUDE_DIR}
-    ${EXTRA_INCLUDES}
-     )
+# INCLUDE_DIRECTORIES(
+#     ${PoDoFo_SOURCE_DIR}/src/podofo
+#     ${FREETYPE_INCLUDE_DIR}
+#     ${ZLIB_INCLUDE_DIR}
+#     ${EXTRA_INCLUDES}
+#      )
 LINK_DIRECTORIES(
     ${PoDoFo_BINARY_DIR}/src/podofo
     )
@@ -554,6 +565,12 @@ FILE(APPEND
      )
 
 ADD_SUBDIRECTORY(src/podofo)
+
+# IF(PODOFO_BUILD_SHARED)
+# ADD_SUBDIRECTORY(cib)
+# ADD_SUBDIRECTORY(exp)
+# ENDIF(PODOFO_BUILD_SHARED)
+
 IF(NOT PODOFO_BUILD_LIB_ONLY)
 ADD_SUBDIRECTORY(test)
 ADD_SUBDIRECTORY(tools)

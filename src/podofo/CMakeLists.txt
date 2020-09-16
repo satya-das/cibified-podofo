@@ -170,8 +170,6 @@ SET(PODOFO_BASE_HEADERS
 
 SET(PODOFO_BASE_HEADERS2 
     base/util/PdfMutex.h
-    base/util/PdfMutexImpl_noop.h
-    base/util/PdfMutexImpl_win32.h
     base/util/PdfMutexImpl_pthread.h
     base/util/PdfMutexWrapper.h
     )
@@ -282,9 +280,45 @@ IF(PODOFO_BUILD_STATIC)
 ENDIF(PODOFO_BUILD_STATIC)
 
 IF(PODOFO_BUILD_SHARED)
+    include("cib-sources.cmake")
     MESSAGE("Building shared PoDoFo library")
-    ADD_LIBRARY(podofo_shared SHARED ${PODOFO_BASE_SOURCES} ${PODOFO_DOC_SOURCES} ${PODOFO_HEADER_FILES})
-    TARGET_LINK_LIBRARIES(podofo_shared ${PODOFO_LIB_DEPENDS})
+    ADD_LIBRARY(podofo_shared SHARED ${PODOFO_BASE_SOURCES} ${PODOFO_DOC_SOURCES} ${PODOFO_CIB_SOURCES} ${PODOFO_HEADER_FILES} ${PODOFO_CIB_HEADERS})
+    TARGET_LINK_LIBRARIES(podofo_shared PRIVATE ${PODOFO_LIB_DEPENDS})
+    TARGET_INCLUDE_DIRECTORIES(podofo_shared
+      BEFORE # before toolchain include dir (to ignore installed)
+      PRIVATE
+        ${PoDoFo_SOURCE_DIR}/src   # order will be reversed, so this is the second dir
+        ${PoDoFo_BINARY_DIR}   # because of BEFORE, this is the first include dir
+    )
+
+    TARGET_INCLUDE_DIRECTORIES(podofo_shared
+      PRIVATE
+        ${PoDoFo_SOURCE_DIR}/src/podofo
+      PUBLIC
+        ${FREETYPE_INCLUDE_DIR}
+        ${ZLIB_INCLUDE_DIR}
+        ${EXTRA_INCLUDES}
+    )
+
+     target_precompile_headers(podofo_shared
+      PRIVATE
+        base/PdfDefines.h
+    )
+    target_include_directories(podofo_shared
+      PRIVATE
+        ../../cib/
+    )
+
+    ADD_LIBRARY(podofo_proxy STATIC ${PODOFO_EXP_SOURCES} ${PODOFO_EXP_HEADERS})
+    TARGET_LINK_LIBRARIES(podofo_proxy podofo_shared)
+    # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -E -dI")
+    target_include_directories(podofo_proxy
+      PUBLIC
+        ${PoDoFo_BINARY_DIR}
+        ../../exp/
+        ../../exp/__zz_cib_internal
+    )
+
     # TODO: set /wd4251 flag if we're doing a debug build with
     # Visual Studio, since it produces invalid warnings about STL
     # use.
